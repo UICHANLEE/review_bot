@@ -1,0 +1,53 @@
+[project]
+name = "cashlog-auto"
+version = "0.1.0"
+description = "On-device product recognition and expense category recommendation for the cashlog app"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "torch>=2.2",
+    # torchvision is required by the Qwen2.5-VL processor; its version must match
+    # the installed torch (e.g. torch 2.10 -> torchvision 0.25). Install with
+    # --no-deps if pip tries to upgrade torch.
+    "torchvision>=0.17",
+    "transformers>=4.49",
+    "pillow>=10.0",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+# Server-side VLM (Qwen2.5-VL) used for fallback and auto-labeling.
+vlm = [
+    "accelerate>=0.30",
+    "peft>=0.11",
+    "qwen-vl-utils>=0.0.8",
+]
+# OCR backends for the receipt track (on-device OCR is used in the real apps;
+# these are Python stand-ins for development/bootstrapping).
+ocr = [
+    "easyocr>=1.7",
+]
+# Training the compact on-device models (Phase 3).
+train = [
+    "scikit-learn>=1.3",
+    "datasets>=2.18",
+]
+# On-device export + benchmarking (Phase 4).
+export = [
+    "coremltools>=8.0",
+    "onnx>=1.16",
+]
+reviews = [
+    "google-play-scraper>=1.2.7",
+    "openpyxl>=3.1",
+]
+dev = [
+    "pytest>=8.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cashlog"]

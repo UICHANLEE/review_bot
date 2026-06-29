@@ -1,0 +1,22 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Datasets and model artifacts (kept out of git)
+data/raw/
+data/labeled/
+data/reviews/*.xlsx
+artifacts/
+*.mlpackage
+*.tflite
+*.onnx
+
+# Local model/HF caches
+.cache/
