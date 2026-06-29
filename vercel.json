@@ -1,4 +1,10 @@
 {
+  "installCommand": "pip install -r requirements.txt",
+  "functions": {
+    "api/**/*.py": {
+      "excludeFiles": "{model/**,data/**,scripts/**,**/__pycache__/**,**/*.ipynb}"
+    }
+  },
   "rewrites": [
     {
       "source": "/",

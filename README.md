@@ -53,13 +53,13 @@ pip install -e .[export]    # Core ML / ONNX export
 pip install -e .[reviews]   # 앱 리뷰 크롤링 + 엑셀 export
 ```
 
-Python 3.11 기준 (Apple Silicon은 자동으로 MPS 사용).
+로컬 개발은 Python 3.11 이상 기준이며, Vercel 배포 런타임은 `.python-version`의 Python 3.12를 사용한다.
 
 ## 사용
 
 ```bash
 # 단일 이미지 데모
-python main.py path/to/image.jpg --type product
+python scripts/demo_image.py path/to/image.jpg --type product
 
 # Phase 2: 자동 라벨링 -> 검수 -> 분할
 python scripts/bootstrap_label.py          # data/raw/ 이미지 -> data/labeled/labels.jsonl

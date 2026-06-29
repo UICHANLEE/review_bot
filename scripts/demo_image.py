@@ -1,7 +1,7 @@
 """Demo entrypoint: recognize products + recommend categories for one image.
 
 Usage:
-    python main.py path/to/image.jpg [--type receipt|product] [--no-vlm]
+    python scripts/demo_image.py path/to/image.jpg [--type receipt|product] [--no-vlm]
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ import argparse
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 
 def main() -> None:
