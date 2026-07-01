@@ -55,6 +55,31 @@ python scripts/export_app_reviews.py adidas \
 - `--count`: 스토어별 리뷰 수
 - `--score`: Play Store 별점 필터
 
+## Node CLI: 키워드 검색 상위 앱 리뷰 수집
+
+검색 키워드로 Google Play와 App Store의 상위 앱을 찾고, 각 앱의 리뷰를 Excel 파일로 저장하는 Node CLI도 포함되어 있습니다.
+
+```bash
+npm install
+npm start -- --keyword "가계부" --country kr --lang ko --top 10 --reviews 50
+```
+
+기본 출력 파일은 `output/reviews_<keyword>_<timestamp>.xlsx`입니다.
+
+주요 옵션:
+
+```text
+-k, --keyword <text>   검색 키워드. 필수.
+    --country <code>   스토어 국가 코드. 기본값: kr
+    --lang <code>      Google Play 언어 코드. 기본값: ko
+    --top <number>     스토어별 검색 상위 앱 개수. 기본값: 10
+    --reviews <number> 앱당 리뷰 개수. 기본값: 50
+    --store <name>     google, apple, both 중 하나. 기본값: both
+    --out <file>       출력 .xlsx 경로.
+```
+
+Excel 파일에는 `Summary`, `Apps`, `Reviews`, 오류가 있을 경우 `Errors` 시트가 생성됩니다.
+
 ## GitHub 정리 방식
 
 리뷰 봇과 무관한 기존 ML/모델/데이터 파일은 로컬에 남기되 `.gitignore`와 `git rm --cached`로 Git 추적에서 제외했습니다.

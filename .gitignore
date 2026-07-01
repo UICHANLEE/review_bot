@@ -32,3 +32,8 @@ src/cashlog/*
 !src/cashlog/
 !src/cashlog/__init__.py
 !src/cashlog/reviews.py
+
+# Node CLI local files
+node_modules/
+output/
+.DS_Store
