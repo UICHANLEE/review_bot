@@ -20,3 +20,15 @@ artifacts/
 
 # Local model/HF caches
 .cache/
+
+# Non-review-bot project leftovers kept locally but excluded from GitHub/Vercel
+data/
+model/
+pyproject.toml
+scripts/*
+!scripts/
+!scripts/export_app_reviews.py
+src/cashlog/*
+!src/cashlog/
+!src/cashlog/__init__.py
+!src/cashlog/reviews.py
