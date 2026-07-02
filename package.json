@@ -8,7 +8,6 @@
     "test": "node --check src/index.js"
   },
   "dependencies": {
-    "app-store-scraper": "latest",
     "exceljs": "latest",
     "google-play-scraper": "latest"
   },

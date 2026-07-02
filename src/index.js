@@ -4,13 +4,11 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 
 let gplay;
-let appStore;
 let ExcelJS;
 
 try {
   gplay = require("google-play-scraper");
   gplay = gplay.default || gplay;
-  appStore = require("app-store-scraper");
   ExcelJS = require("exceljs");
 } catch (error) {
   if (error && error.code === "MODULE_NOT_FOUND") {
@@ -187,24 +185,28 @@ async function collectGoogleReviews(app, options, errors) {
 
 async function collectAppleApps(options, errors) {
   try {
-    const results = await appStore.search({
-      term: options.keyword,
-      num: options.top,
-      country: options.country
-    });
+    const url = new URL("https://itunes.apple.com/search");
+    url.searchParams.set("term", options.keyword);
+    url.searchParams.set("country", options.country);
+    url.searchParams.set("entity", "software");
+    url.searchParams.set("limit", String(options.top));
+    url.searchParams.set("media", "software");
+
+    const payload = await fetchJson(url);
+    const results = Array.isArray(payload.results) ? payload.results : [];
 
     return results.slice(0, options.top).map((app, index) => ({
       store: "App Store",
       rank: index + 1,
-      appId: String(app.id || app.appId || ""),
-      title: app.title || "",
-      developer: app.developer || app.artistName || "",
-      url: app.url || "",
-      score: app.score ?? app.averageUserRating ?? "",
-      ratings: app.ratings ?? app.userRatingCount ?? "",
-      reviewsCount: app.reviews ?? "",
-      price: app.price ?? "",
-      icon: app.icon || ""
+      appId: String(app.trackId || ""),
+      title: app.trackName || "",
+      developer: app.sellerName || app.artistName || "",
+      url: app.trackViewUrl || "",
+      score: app.averageUserRating ?? "",
+      ratings: app.userRatingCount ?? "",
+      reviewsCount: app.userRatingCount ?? "",
+      price: app.formattedPrice ?? app.price ?? "",
+      icon: app.artworkUrl512 || app.artworkUrl100 || app.artworkUrl60 || ""
     }));
   } catch (error) {
     errors.push(toErrorRow("App Store", "search", options.keyword, error));
@@ -214,19 +216,13 @@ async function collectAppleApps(options, errors) {
 
 async function collectAppleReviews(app, options, errors) {
   const reviews = [];
-  const pageSizeEstimate = 50;
-  const maxPages = Math.min(10, Math.ceil(options.reviews / pageSizeEstimate) + 1);
+  const maxPages = Math.min(10, Math.ceil(options.reviews / 50) || 1);
 
   for (let page = 1; page <= maxPages && reviews.length < options.reviews; page += 1) {
     try {
-      const pageReviews = await appStore.reviews({
-        id: app.appId,
-        country: options.country,
-        sort: appStore.sort && appStore.sort.RECENT,
-        page
-      });
+      const pageReviews = await fetchAppleReviewEntries(app.appId, options.country, page);
 
-      if (!Array.isArray(pageReviews) || pageReviews.length === 0) {
+      if (pageReviews.length === 0) {
         break;
       }
 
@@ -237,23 +233,101 @@ async function collectAppleReviews(app, options, errors) {
     }
   }
 
+  if (reviews.length === 0) {
+    errors.push(toErrorRow(
+      app.store,
+      "reviews",
+      app.appId,
+      "No public App Store review feed entries were returned for this app/country."
+    ));
+  }
+
   return reviews.slice(0, options.reviews).map((review, index) => ({
     store: app.store,
     appRank: app.rank,
     appId: app.appId,
     appTitle: app.title,
     reviewRank: index + 1,
-    reviewId: review.id || "",
-    userName: review.userName || "",
-    score: review.score ?? review.rating ?? "",
-    title: review.title || "",
-    text: review.text || review.review || "",
-    date: normalizeDate(review.updated || review.date),
-    version: review.version || "",
+    reviewId: getLabel(review.id),
+    userName: getLabel(review.author && review.author.name),
+    score: Number.parseInt(getLabel(review["im:rating"]), 10) || "",
+    title: getLabel(review.title),
+    text: getLabel(review.content),
+    date: normalizeDate(getLabel(review.updated)),
+    version: getLabel(review["im:version"]),
     thumbsUp: "",
     developerReply: "",
     developerReplyDate: ""
   }));
+}
+
+async function fetchAppleReviewEntries(appId, country, page) {
+  const encodedAppId = encodeURIComponent(appId);
+  const encodedCountry = encodeURIComponent(country);
+  const urls = [
+    `https://itunes.apple.com/${encodedCountry}/rss/customerreviews/page=${page}/id=${encodedAppId}/sortby=mostRecent/json`,
+    `https://itunes.apple.com/rss/customerreviews/page=${page}/id=${encodedAppId}/sortby=mostRecent/json?cc=${encodedCountry}`
+  ];
+
+  if (page === 1) {
+    urls.push(
+      `https://itunes.apple.com/${encodedCountry}/rss/customerreviews/id=${encodedAppId}/sortby=mostRecent/json`,
+      `https://itunes.apple.com/rss/customerreviews/id=${encodedAppId}/sortby=mostRecent/json?cc=${encodedCountry}`
+    );
+  }
+
+  let lastError;
+  for (const url of urls) {
+    try {
+      const payload = await fetchJson(url);
+      const entries = ensureArray(payload.feed && payload.feed.entry);
+      const reviews = entries.filter((entry) => entry && entry["im:rating"]);
+
+      if (reviews.length > 0) {
+        return reviews;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  return [];
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url, {
+    headers: {
+      "accept": "application/json",
+      "user-agent": "review_bot/1.0"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+function ensureArray(value) {
+  if (!value) {
+    return [];
+  }
+  return Array.isArray(value) ? value : [value];
+}
+
+function getLabel(value) {
+  if (!value) {
+    return "";
+  }
+  if (typeof value === "object" && Object.prototype.hasOwnProperty.call(value, "label")) {
+    return value.label ?? "";
+  }
+  return String(value);
 }
 
 function normalizeDate(value) {
